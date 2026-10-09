@@ -493,7 +493,14 @@ HAL_StatusTypeDef HAL_MMC_InitCard(MMC_HandleTypeDef *hmmc)
   Init.ClockEdge           = SDMMC_CLOCK_EDGE_RISING;
   Init.ClockPowerSave      = SDMMC_CLOCK_POWER_SAVE_DISABLE;
   Init.BusWide             = SDMMC_BUS_WIDE_1B;
-  Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
+  /*
+   * Enable hardware flow control during init. The HAL's polled FIFO loop
+   * cannot keep up on boards running XIP from slow external flash, causing
+   * RX_OVERRUN on the ExtCSD read. HWFC stalls SDMMC_CK when the FIFO fills,
+   * giving software unlimited time to drain it. The only cost is a slower
+   * transfer, which is irrelevant at 400 kHz identify speed.
+   */
+  Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
 
   /* Init Clock should be less or equal to 400Khz*/
   sdmmc_clk = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_SDMMC12);
