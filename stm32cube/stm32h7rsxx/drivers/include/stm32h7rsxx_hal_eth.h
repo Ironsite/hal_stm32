@@ -43,7 +43,24 @@ extern "C" {
 #endif /* ETH_TX_DESC_CNT */
 
 #ifndef ETH_RX_DESC_CNT
-#define ETH_RX_DESC_CNT         4U
+/*
+ * 16, not the stock 4.
+ *
+ * Four RX descriptors is four frames of slack between the DMA and the RX
+ * thread. Miss that window even briefly and the ring runs dry, the DMA raises
+ * RBU and frames are dropped in hardware -- uncounted, because
+ * HAL_ETH_IRQHandler consumes DMACMFCR before software can read it.
+ *
+ * MEASURED on OspreyB at ~145 frames/s: the MAC received 14,779 frames in
+ * 102 s (95-99% of what OspreyC sent, so the 100BASE-T1 link was never the
+ * problem) while the driver delivered 1,703 of them. The "receive errors"
+ * count exceeded the frames received, which is the signature of repeated RBU
+ * rather than one failure per frame.
+ *
+ * Costs ETH_MAX_PACKET_SIZE (1528) per descriptor in the DMA region. See
+ * ospreyb-proto.overlay, which extends sram1 to 32 KB to hold it.
+ */
+#define ETH_RX_DESC_CNT         16U
 #endif /* ETH_RX_DESC_CNT */
 
 #ifndef ETH_SWRESET_TIMEOUT
